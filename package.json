@@ -1,0 +1,27 @@
+{
+  "name": "node-author-intrusion-echo",
+  "version": "0.0.0",
+  "description": "An echo word detection plugin for Author Intrusion.",
+  "homepage": "https://github.com/dmoonfire/node-author-intrusion-echo",
+  "author": "Dylan R. E. Moonfire",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/author-intrusion/node-author-intrusion-echo.git"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-cli": "~0.1.9",
+    "grunt-jasmine-nodejs": "^1.4.2",
+    "grunt-ts": "^4.2.0-beta.1",
+    "jasmine": "^2.3.1",
+    "typescript": "1.5.0-beta"
+  },
+  "dependencies": {
+    "node-author-intrusion": "^0.0.0"
+  }
+}
