@@ -22,6 +22,7 @@ interface EchoFilterOption {
      */
     value: string | string[];
 }
+
 interface EchoSearchOption {
     score: number[];
     warning: number;
@@ -35,6 +36,7 @@ interface EchoSearchOption {
 
     filter: EchoFilterOption | EchoFilterOption[];
 }
+
 interface EchoOption {
     range: number;
 
@@ -62,17 +64,6 @@ export function process(args: types.AnalysisArguments) {
     if (!range) {
         args.output.writeError(
             args.analysis.name + ": options.range must be set.",
-            args.content.tokens[0].location);
-        return;
-    }
-
-    // The score is a quadratic function (a + bx + cx^2) that calculates a numerical
-    // score based on x = range - abs(distance).
-    var score: number[] = options.score;
-
-    if (!score) {
-        args.output.writeError(
-            args.analysis.name + ": options.score must be set.",
             args.content.tokens[0].location);
         return;
     }
@@ -264,3 +255,17 @@ function getScoreMultiplier(options: EchoOption, text: string): number {
     // If we fall out of the loop, use 1.0.
     return 1;
 }
+
+/*
+// The score is a quadratic function (a + bx + cx^2) that calculates a numerical
+// score based on x = range - abs(distance).
+var score: number[] = options.score;
+
+if (!score) {
+    args.output.writeError(
+        args.analysis.name + ": options.score must be set.",
+        args.content.tokens[0].location);
+    return;
+}
+
+*/
