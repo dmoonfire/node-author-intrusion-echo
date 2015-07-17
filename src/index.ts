@@ -7,7 +7,7 @@ interface EchoFilterOption {
      * The field to use for searching for echoes. Acceptable variables
      * are "normalized" (default), "stem", and "partOfSpeech".
      */
-     field: string;
+    field: string;
 
     /**
      * Contains the type of pattern matching used for tokens. Acceptable
@@ -20,10 +20,10 @@ interface EchoFilterOption {
      * Contains either a text string or a list of text strings which is
      * compared using the above type to determine a match.
      */
-    value: string | string[];
+    value: string[];
 }
 
-interface EchoSearchOption {
+interface EchoConditionOption {
     score: number[];
     warning: number;
     error: number;
@@ -34,7 +34,7 @@ interface EchoSearchOption {
      */
     field: string;
 
-    filter: EchoFilterOption | EchoFilterOption[];
+    filter: EchoFilterOption[];
 }
 
 interface EchoOption {
@@ -49,7 +49,7 @@ interface EchoOption {
      * Contains a list of one or more search conditions to look
      * for echos.
      */
-    search: EchoSearchOption | EchoSearchOption[];
+    conditions: EchoConditionOption[];
 }
 
 export function process(args: types.AnalysisArguments) {
@@ -81,10 +81,27 @@ export function process(args: types.AnalysisArguments) {
 }
 
 function processContainer(options: EchoOption, container: types.TokenContainer) {
-    // Figure out which field we'll be pulling.
-    var fieldName = options.field ? options.field : "normalized";
+    // Go through each of the tokens in the container.
+    for (var token of container.tokens) {
+        // Get the surrounding tokens from this one. This doesn't change based
+        // on the individual tests.
+        var testTokens = getTestTokens(options, token.index, container.tokens);
 
-    // Build up a location of tokens that have the same text.
+        // Go through all the conditions, which are the echo states
+        // we are searching for.
+        for (var condition of options.conditions) {
+            processCondition(options, condition, token, testTokens);
+        }
+    }
+}
+
+function processCondition(
+    options: EchoOption,
+    condition: EchoConditionOption,
+    token: types.Token,
+    testTokens: types.Token[]) {
+/*
+
     var lookups: { [id: string]: types.Token[] } = {};
 
     for (var tokenIndex in container.tokens) {
@@ -111,12 +128,14 @@ function processContainer(options: EchoOption, container: types.TokenContainer) 
 
         processToken(options, lookupKey, lookup);
     }
+*/
 }
 
 function processToken(
     options: EchoOption,
     text: string,
     tokens: types.Token[]) {
+/*
     // Get the thresholds.
     var warningThreshold: number = options.warning;
     var errorThreshold: number = options.error;
@@ -164,9 +183,11 @@ function processToken(
             args.output.writeError(message, token.location);
         }
     }
+*/
 }
 
 function getTestTokens(options: EchoOption, index: number, tokens: types.Token[]): types.Token[] {
+/*
     var range = options.range;
     var testTokens = new Array<types.Token>();
 
@@ -180,9 +201,12 @@ function getTestTokens(options: EchoOption, index: number, tokens: types.Token[]
     }
 
     return testTokens;
+*/
+    return [];
 }
 
 function scoreTokens(options: EchoOption, index: number, tokens: types.Token[]): number {
+/*
     var range: number = options.range;
     var score: number[] = options.score;
     var tokenScore: number = 0;
@@ -201,6 +225,8 @@ function scoreTokens(options: EchoOption, index: number, tokens: types.Token[]):
     }
 
     return tokenScore;
+*/
+    return 0;
 }
 
 function calculateScore(score: number[], x: number): number {
@@ -222,6 +248,7 @@ function calculateScore(score: number[], x: number): number {
 }
 
 function getScoreMultiplier(options: EchoOption, text: string): number {
+/*
     // If we don't have multipliers, then we're good.
     if (!options.tokens) {
         return 1;
@@ -253,6 +280,7 @@ function getScoreMultiplier(options: EchoOption, text: string): number {
     }
 
     // If we fall out of the loop, use 1.0.
+*/
     return 1;
 }
 
@@ -267,5 +295,9 @@ if (!score) {
         args.content.tokens[0].location);
     return;
 }
+
+// Figure out which field we'll be pulling.
+var fieldName = options.field ? options.field : "normalized";
+
 
 */
