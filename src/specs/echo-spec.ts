@@ -46,15 +46,18 @@ describe("simple echoes", function() {
         options.scope = "document";
         options.conditions = [condition];
 
+        var output = new types.MemoryAnalysisOutput();
+
         var args = new types.AnalysisArguments();
         args.content = content;
         args.analysis = new types.Analysis();
         args.analysis.name = "Echo";
         args.analysis.options = options;
+        args.output = output;
         echoPlugin.process(args);
 
         // Verify the results.
-        expect("test").toEqual("test");
+        expect(output.messages.length).toEqual(0);
     });
     it("look at line with two echoes", function () {
         // Create the content for the line.
@@ -72,14 +75,17 @@ describe("simple echoes", function() {
         options.scope = "document";
         options.conditions = [condition];
 
+        var output = new types.MemoryAnalysisOutput();
+
         var args = new types.AnalysisArguments();
         args.content = content;
         args.analysis = new types.Analysis();
         args.analysis.name = "Echo";
         args.analysis.options = options;
+        args.output = output;
         echoPlugin.process(args);
 
         // Verify the results.
-        expect("test").toEqual("test");
+        expect(output.messages.length).toEqual(4);
     });
 });

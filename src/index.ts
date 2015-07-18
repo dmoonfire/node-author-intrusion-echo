@@ -76,11 +76,11 @@ export function process(args: types.AnalysisArguments) {
     // only within a sentence.
     for (var containerIndex in containers) {
         var container = containers[containerIndex];
-        processContainer(options, container);
+        processContainer(args.output, options, container);
     }
 }
 
-function processContainer(options: EchoOptions, container: types.TokenContainer) {
+function processContainer(output: types.AnalysisOutput, options: EchoOptions, container: types.TokenContainer) {
     // Go through each of the tokens in the container.
     for (var token of container.tokens) {
         // Get the surrounding tokens from this one. This doesn't change based
@@ -90,12 +90,13 @@ function processContainer(options: EchoOptions, container: types.TokenContainer)
         // Go through all the conditions, which are the echo states
         // we are searching for.
         for (var condition of options.conditions) {
-            processCondition(options, condition, token, testTokens);
+            processCondition(output, options, condition, token, testTokens);
         }
     }
 }
 
 function processCondition(
+    output: types.AnalysisOutput,
     options: EchoOptions,
     condition: EchoConditionOptions,
     token: types.Token,
@@ -111,37 +112,23 @@ function processCondition(
         condition.filters = [filter]
     }
 
+    // Filter out the tokens. If we don't have any left, then we're done.
     var filteredTokens = filterTokens(token, condition.filters, testTokens);
-    console.log("processCondition", token.text, filteredTokens.length);
-    /*
 
-        var lookups: { [id: string]: types.Token[] } = {};
+    if (filteredTokens.length == 0) { return; }
 
-        for (var tokenIndex in container.tokens) {
-            var token = container.tokens[tokenIndex];
-            var key = token[fieldName];
+    // We have at least one filtered token, so calculate a score from the list.
+    var tokenScore = scoreTokens(options, condition, token.index, filteredTokens);
 
-            if (!lookups[key]) {
-                lookups[key] = new Array<types.Token>();
-            }
-
-            lookups[key].push(token);
-        }
-
-        // Loop through the gathered tokens and process the ones that have two or more
-        // entries.
-        for (var lookupKey in lookups) {
-            // If we have only one item, then just skip it, there is no chance it is an
-            // echo word.
-            var lookup = lookups[lookupKey];
-
-            if (lookup.length < 2) {
-                continue;
-            }
-
-            processToken(options, lookupKey, lookup);
-        }
-    */
+    // Check the threshold of scores.
+    if (tokenScore >= condition.error)
+    {
+        output.writeError("message", token.location);
+    }
+    else if (tokenScore >= condition.warning)
+    {
+        output.writeWarning("message", token.location);
+    }
 }
 
 function filterTokens(baseToken: types.Token, filters: EchoFilterOptions[], tokens: types.Token[]): types.Token[] {
@@ -204,8 +191,6 @@ function processToken(
                 continue;
             }
 
-            // Score the collection to figure out how important this is.
-            var tokenScore = scoreTokens(args.analysis.options, token.index, testTokens);
 
             // See if we have a score multiplier. This will return 1.0 if we don't have one, so we
             // can multiply the score by it to get an adjusted score.
@@ -254,28 +239,25 @@ function getTestTokens(options: EchoOptions, index: number, tokens: types.Token[
     return testTokens;
 }
 
-function scoreTokens(options: EchoOptions, index: number, tokens: types.Token[]): number {
-    /*
-        var range: number = options.range;
-        var score: number[] = options.score;
-        var tokenScore: number = 0;
-        var testTokens = new Array<types.Token>();
+function scoreTokens(options: EchoOptions, condition: EchoConditionOptions, index: number, tokens: types.Token[]): number {
+    var range: number = options.range;
+    var score: number[] = condition.score;
+    var tokenScore: number = 0;
+    var testTokens = new Array<types.Token>();
 
-        for (var tokenIndex in tokens) {
-            // Get the token and figure out how many tokens away it is from the one we're
-            // testing.
-            var token = tokens[tokenIndex];
-            var distance = Math.abs(token.index - index);
-            var offset = range - distance;
+    for (var tokenIndex in tokens) {
+        // Get the token and figure out how many tokens away it is from the one we're
+        // testing.
+        var token = tokens[tokenIndex];
+        var distance = Math.abs(token.index - index);
+        var offset = range - distance;
 
-            // Calculate the score based on that value.
-            var currentScore = calculateScore(score, offset);
-            tokenScore += currentScore;
-        }
+        // Calculate the score based on that value.
+        var currentScore = calculateScore(score, offset);
+        tokenScore += currentScore;
+    }
 
-        return tokenScore;
-    */
-    return 0;
+    return tokenScore;
 }
 
 function calculateScore(score: number[], x: number): number {
