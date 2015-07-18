@@ -5,14 +5,14 @@ import types = require("node-author-intrusion");
 export class EchoFilterOptions {
     /**
      * The field to use for searching for echoes. Acceptable variables
-     * are "normalized" (default), "stem", and "partOfSpeech".
+     * are "normalized" (default), "text", "stem", and "partOfSpeech".
      */
     field: string;
 
     /**
      * Contains the type of pattern matching used for tokens. Acceptable
-     * values are "exact" (default), or "regex". These are compared against
-     * the value field.
+     * values are exact" (default) or "regex". These are used to
+     * determine how the field is compared against the values.
      */
     type: string;
 
@@ -100,6 +100,19 @@ function processCondition(
     condition: EchoConditionOptions,
     token: types.Token,
     testTokens: types.Token[]) {
+    // Filter out the tokens in testTokens based on the filters we have within
+    // the condition. If there is no filter, then we have a placeholder "all"
+    // which compared against the normalized fields.
+    if (!condition.filters) {
+        var filter = new EchoFilterOptions();
+        filter.field = "normalized";
+        filter.type = "exact";
+
+        condition.filters = [filter]
+    }
+
+    var filteredTokens = filterTokens(token, condition.filters, testTokens);
+    console.log("processCondition", token.text, filteredTokens.length);
     /*
 
         var lookups: { [id: string]: types.Token[] } = {};
@@ -129,6 +142,45 @@ function processCondition(
             processToken(options, lookupKey, lookup);
         }
     */
+}
+
+function filterTokens(baseToken: types.Token, filters: EchoFilterOptions[], tokens: types.Token[]): types.Token[] {
+    // Create a list of filtered tokens, excluding ourselves.
+    var filteredTokens: types.Token[] = [];
+
+    for (var testToken of tokens) {
+        // Exclude ouselves from the list.
+        if (baseToken.index == testToken.index) { continue; }
+
+        // Loop through all the filters. If we find a match, we include it. If
+        // we get through all the filters without matching, we skip it.
+        for (var filter of filters) {
+            // Get the base and compare value.
+            var baseValue = baseToken[filter.field];
+            var testValue = testToken[filter.field];
+
+            // Check for include/exclude values.
+
+            // If there is a match, we include it.
+            if (inFilter(filter, baseValue, testValue)) {
+                filteredTokens.push(testToken);
+                break;
+            }
+        }
+    }
+
+    // Return the resulting tokens.
+    return filteredTokens;
+}
+
+function inFilter(filter: EchoFilterOptions, baseValue: string, testValue: string) {
+    // The filter type determines how (or if) we compare the test value.
+    switch (filter.type) {
+        case "exact":
+            return baseValue === testValue;
+        default:
+            throw new Error("Unknown echo filter type: " + filter.type + ".");
+    }
 }
 
 function processToken(
@@ -187,22 +239,19 @@ function processToken(
 }
 
 function getTestTokens(options: EchoOptions, index: number, tokens: types.Token[]): types.Token[] {
-    /*
-        var range = options.range;
-        var testTokens = new Array<types.Token>();
+    var range = options.range;
+    var testTokens = new Array<types.Token>();
 
-        for (var tokenIndex in tokens) {
-            var token = tokens[tokenIndex];
-            var distance = Math.abs(token.index - index);
+    for (var tokenIndex in tokens) {
+        var token = tokens[tokenIndex];
+        var distance = Math.abs(token.index - index);
 
-            if (distance > 0 && distance <= range) {
-                testTokens.push(token);
-            }
+        if (distance > 0 && distance <= range) {
+            testTokens.push(token);
         }
+    }
 
-        return testTokens;
-    */
-    return [];
+    return testTokens;
 }
 
 function scoreTokens(options: EchoOptions, index: number, tokens: types.Token[]): number {

@@ -35,16 +35,11 @@ describe("simple echoes", function() {
         var content = createContent("There are no echoes in this line.");
 
         // Perform echo analysis on the text.
-        var filter = new echoPlugin.EchoFilterOptions();
-        filter.field = "normalized";
-        filter.type = "all";
-
         var condition = new echoPlugin.EchoConditionOptions();
         condition.score = [0, 0, 1];
         condition.error = 100;
         condition.warning = 25;
         condition.field = "normalized";
-        condition.filters = [filter];
 
         var options = new echoPlugin.EchoOptions();
         options.range = 100;
@@ -57,7 +52,34 @@ describe("simple echoes", function() {
         args.analysis.name = "Echo";
         args.analysis.options = options;
         echoPlugin.process(args);
-        console.log(content)
+
+        // Verify the results.
+        expect("test").toEqual("test");
+    });
+    it("look at line with two echoes", function () {
+        // Create the content for the line.
+        var content = createContent("I too think you think too much.");
+
+        // Perform echo analysis on the text.
+        var condition = new echoPlugin.EchoConditionOptions();
+        condition.score = [0, 0, 1];
+        condition.error = 100;
+        condition.warning = 25;
+        condition.field = "normalized";
+
+        var options = new echoPlugin.EchoOptions();
+        options.range = 100;
+        options.scope = "document";
+        options.conditions = [condition];
+
+        var args = new types.AnalysisArguments();
+        args.content = content;
+        args.analysis = new types.Analysis();
+        args.analysis.name = "Echo";
+        args.analysis.options = options;
+        echoPlugin.process(args);
+
+        // Verify the results.
         expect("test").toEqual("test");
     });
 });
