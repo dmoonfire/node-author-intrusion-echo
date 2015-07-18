@@ -61,7 +61,7 @@ describe("simple echoes", function() {
     });
     it("look at line with two echoes", function () {
         // Create the content for the line.
-        var content = createContent("I too think you think too much.");
+        var content = createContent("I think you think too much.");
 
         // Perform echo analysis on the text.
         var condition = new echoPlugin.EchoConditionOptions();
@@ -86,6 +86,6 @@ describe("simple echoes", function() {
         echoPlugin.process(args);
 
         // Verify the results.
-        expect(output.messages.length).toEqual(4);
+        expect(output.messages.length).toEqual(2);
     });
 });
