@@ -2,7 +2,7 @@
 
 import types = require("node-author-intrusion");
 
-interface EchoFilterOption {
+export class EchoFilterOptions {
     /**
      * The field to use for searching for echoes. Acceptable variables
      * are "normalized" (default), "stem", and "partOfSpeech".
@@ -20,10 +20,10 @@ interface EchoFilterOption {
      * Contains either a text string or a list of text strings which is
      * compared using the above type to determine a match.
      */
-    value: string[];
+    values: string[];
 }
 
-interface EchoConditionOption {
+export class EchoConditionOptions {
     score: number[];
     warning: number;
     error: number;
@@ -34,10 +34,10 @@ interface EchoConditionOption {
      */
     field: string;
 
-    filter: EchoFilterOption[];
+    filters: EchoFilterOptions[];
 }
 
-interface EchoOption {
+export class EchoOptions {
     range: number;
 
     /**
@@ -49,12 +49,12 @@ interface EchoOption {
      * Contains a list of one or more search conditions to look
      * for echos.
      */
-    conditions: EchoConditionOption[];
+    conditions: EchoConditionOptions[];
 }
 
 export function process(args: types.AnalysisArguments) {
     // Pull out the options and cast them.
-    var options: EchoOption = args.analysis.options;
+    var options: EchoOptions = args.analysis.options;
 
     // The important parts we have now are the "range", which determines how close
     // we compare various elements. The closer the two points are, the higher the
@@ -80,7 +80,7 @@ export function process(args: types.AnalysisArguments) {
     }
 }
 
-function processContainer(options: EchoOption, container: types.TokenContainer) {
+function processContainer(options: EchoOptions, container: types.TokenContainer) {
     // Go through each of the tokens in the container.
     for (var token of container.tokens) {
         // Get the surrounding tokens from this one. This doesn't change based
@@ -96,136 +96,136 @@ function processContainer(options: EchoOption, container: types.TokenContainer) 
 }
 
 function processCondition(
-    options: EchoOption,
-    condition: EchoConditionOption,
+    options: EchoOptions,
+    condition: EchoConditionOptions,
     token: types.Token,
     testTokens: types.Token[]) {
-/*
+    /*
 
-    var lookups: { [id: string]: types.Token[] } = {};
+        var lookups: { [id: string]: types.Token[] } = {};
 
-    for (var tokenIndex in container.tokens) {
-        var token = container.tokens[tokenIndex];
-        var key = token[fieldName];
+        for (var tokenIndex in container.tokens) {
+            var token = container.tokens[tokenIndex];
+            var key = token[fieldName];
 
-        if (!lookups[key]) {
-            lookups[key] = new Array<types.Token>();
+            if (!lookups[key]) {
+                lookups[key] = new Array<types.Token>();
+            }
+
+            lookups[key].push(token);
         }
 
-        lookups[key].push(token);
-    }
+        // Loop through the gathered tokens and process the ones that have two or more
+        // entries.
+        for (var lookupKey in lookups) {
+            // If we have only one item, then just skip it, there is no chance it is an
+            // echo word.
+            var lookup = lookups[lookupKey];
 
-    // Loop through the gathered tokens and process the ones that have two or more
-    // entries.
-    for (var lookupKey in lookups) {
-        // If we have only one item, then just skip it, there is no chance it is an
-        // echo word.
-        var lookup = lookups[lookupKey];
+            if (lookup.length < 2) {
+                continue;
+            }
 
-        if (lookup.length < 2) {
-            continue;
+            processToken(options, lookupKey, lookup);
         }
-
-        processToken(options, lookupKey, lookup);
-    }
-*/
+    */
 }
 
 function processToken(
-    options: EchoOption,
+    options: EchoOptions,
     text: string,
     tokens: types.Token[]) {
-/*
-    // Get the thresholds.
-    var warningThreshold: number = options.warning;
-    var errorThreshold: number = options.error;
+    /*
+        // Get the thresholds.
+        var warningThreshold: number = options.warning;
+        var errorThreshold: number = options.error;
 
-    // Loop through the tokens and then filter out the list of ones that within
-    // the given range.
-    for (var i in tokens) {
-        // Get the token and then get all of the tokens that are close to that range.
-        // If there aren't any test tokens, then skip it.
-        var token: types.Token = tokens[i];
-        var testTokens = getTestTokens(args.analysis.options, token.index, tokens);
+        // Loop through the tokens and then filter out the list of ones that within
+        // the given range.
+        for (var i in tokens) {
+            // Get the token and then get all of the tokens that are close to that range.
+            // If there aren't any test tokens, then skip it.
+            var token: types.Token = tokens[i];
+            var testTokens = getTestTokens(args.analysis.options, token.index, tokens);
 
-        if (testTokens.length == 0) {
-            continue;
+            if (testTokens.length == 0) {
+                continue;
+            }
+
+            // Score the collection to figure out how important this is.
+            var tokenScore = scoreTokens(args.analysis.options, token.index, testTokens);
+
+            // See if we have a score multiplier. This will return 1.0 if we don't have one, so we
+            // can multiply the score by it to get an adjusted score.
+            var tokenMultiplier = getScoreMultiplier(args.analysis.options, token.text);
+
+            tokenScore *= tokenMultiplier;
+
+            // If we are under the warning threshold, we don't have to worry about it.
+            if (tokenScore < warningThreshold) {
+                continue;
+            }
+
+            // Format the message we'll be showing the user.
+            var message = args.analysis.name
+                + ": '" + token.text + "' is echoed "
+                + (testTokens.length + 1)
+                + " times within "
+                + args.analysis.options.range
+                + " words (score "
+                + tokenScore
+                + ")";
+
+            if (tokenScore < errorThreshold) {
+                args.output.writeWarning(message, token.location);
+            }
+            else {
+                args.output.writeError(message, token.location);
+            }
         }
-
-        // Score the collection to figure out how important this is.
-        var tokenScore = scoreTokens(args.analysis.options, token.index, testTokens);
-
-        // See if we have a score multiplier. This will return 1.0 if we don't have one, so we
-        // can multiply the score by it to get an adjusted score.
-        var tokenMultiplier = getScoreMultiplier(args.analysis.options, token.text);
-
-        tokenScore *= tokenMultiplier;
-
-        // If we are under the warning threshold, we don't have to worry about it.
-        if (tokenScore < warningThreshold) {
-            continue;
-        }
-
-        // Format the message we'll be showing the user.
-        var message = args.analysis.name
-            + ": '" + token.text + "' is echoed "
-            + (testTokens.length + 1)
-            + " times within "
-            + args.analysis.options.range
-            + " words (score "
-            + tokenScore
-            + ")";
-
-        if (tokenScore < errorThreshold) {
-            args.output.writeWarning(message, token.location);
-        }
-        else {
-            args.output.writeError(message, token.location);
-        }
-    }
-*/
+    */
 }
 
-function getTestTokens(options: EchoOption, index: number, tokens: types.Token[]): types.Token[] {
-/*
-    var range = options.range;
-    var testTokens = new Array<types.Token>();
+function getTestTokens(options: EchoOptions, index: number, tokens: types.Token[]): types.Token[] {
+    /*
+        var range = options.range;
+        var testTokens = new Array<types.Token>();
 
-    for (var tokenIndex in tokens) {
-        var token = tokens[tokenIndex];
-        var distance = Math.abs(token.index - index);
+        for (var tokenIndex in tokens) {
+            var token = tokens[tokenIndex];
+            var distance = Math.abs(token.index - index);
 
-        if (distance > 0 && distance <= range) {
-            testTokens.push(token);
+            if (distance > 0 && distance <= range) {
+                testTokens.push(token);
+            }
         }
-    }
 
-    return testTokens;
-*/
+        return testTokens;
+    */
     return [];
 }
 
-function scoreTokens(options: EchoOption, index: number, tokens: types.Token[]): number {
-/*
-    var range: number = options.range;
-    var score: number[] = options.score;
-    var tokenScore: number = 0;
-    var testTokens = new Array<types.Token>();
+function scoreTokens(options: EchoOptions, index: number, tokens: types.Token[]): number {
+    /*
+        var range: number = options.range;
+        var score: number[] = options.score;
+        var tokenScore: number = 0;
+        var testTokens = new Array<types.Token>();
 
-    for (var tokenIndex in tokens) {
-        // Get the token and figure out how many tokens away it is from the one we're
-        // testing.
-        var token = tokens[tokenIndex];
-        var distance = Math.abs(token.index - index);
-        var offset = range - distance;
+        for (var tokenIndex in tokens) {
+            // Get the token and figure out how many tokens away it is from the one we're
+            // testing.
+            var token = tokens[tokenIndex];
+            var distance = Math.abs(token.index - index);
+            var offset = range - distance;
 
-        // Calculate the score based on that value.
-        var currentScore = calculateScore(score, offset);
-        tokenScore += currentScore;
-    }
+            // Calculate the score based on that value.
+            var currentScore = calculateScore(score, offset);
+            tokenScore += currentScore;
+        }
 
-    return tokenScore;
-*/
+        return tokenScore;
+    */
     return 0;
 }
 
@@ -247,40 +247,40 @@ function calculateScore(score: number[], x: number): number {
     return value;
 }
 
-function getScoreMultiplier(options: EchoOption, text: string): number {
-/*
-    // If we don't have multipliers, then we're good.
-    if (!options.tokens) {
-        return 1;
-    }
-
-    // Loop through until we find the first match.
-    for (var index in options.tokens) {
-        // Figure out if we have a match.
-        var multiplier = options.tokens[index];
-        var type = multiplier.type;
-        if (!type) { type = "exact"; }
-
-        switch (type) {
-            case "exact":
-                if (multiplier.value === text) {
-                    return multiplier.multiplier;
-                }
-                break;
-
-            case "regex":
-                if (text.match("^" + multiplier.value + "$")) {
-                    return multiplier.multiplier;
-                }
-                break;
-
-            default:
-                throw new Error("Unknown token multiplier");
+function getScoreMultiplier(options: EchoOptions, text: string): number {
+    /*
+        // If we don't have multipliers, then we're good.
+        if (!options.tokens) {
+            return 1;
         }
-    }
 
-    // If we fall out of the loop, use 1.0.
-*/
+        // Loop through until we find the first match.
+        for (var index in options.tokens) {
+            // Figure out if we have a match.
+            var multiplier = options.tokens[index];
+            var type = multiplier.type;
+            if (!type) { type = "exact"; }
+
+            switch (type) {
+                case "exact":
+                    if (multiplier.value === text) {
+                        return multiplier.multiplier;
+                    }
+                    break;
+
+                case "regex":
+                    if (text.match("^" + multiplier.value + "$")) {
+                        return multiplier.multiplier;
+                    }
+                    break;
+
+                default:
+                    throw new Error("Unknown token multiplier");
+            }
+        }
+
+        // If we fall out of the loop, use 1.0.
+    */
     return 1;
 }
 
