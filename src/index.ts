@@ -129,9 +129,9 @@ function processCondition(
     if (tokenScore < condition.warning) { return; }
 
     // Build up the message to display to the user.
-    var message = token[condition.field] + " was used " + filteredTokens.length
-        + " in the surrounding " + options.range + " tokens. (Score "
-        + tokenScore + ", Text " + token.text + ")";
+    var message = token.text + ": " + token[condition.field] + " was used " + filteredTokens.length
+        + " other times in the surrounding " + options.range + " tokens. (Score "
+        + tokenScore + ")";
 
     if (tokenScore >= condition.error)
     {
