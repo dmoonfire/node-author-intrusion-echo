@@ -34,6 +34,10 @@ export class EchoConditionOptions {
      */
     field: string;
 
+    /**
+     * The filters to look for. If any one matches, then it will be used for
+     * the comparison.
+     */
     filters: EchoFilterOptions[];
 }
 
@@ -103,10 +107,10 @@ function processCondition(
     testTokens: types.Token[]) {
     // Filter out the tokens in testTokens based on the filters we have within
     // the condition. If there is no filter, then we have a placeholder "all"
-    // which compared against the normalized fields.
+    // which compared against the same field as the source.
     if (!condition.filters) {
         var filter = new EchoFilterOptions();
-        filter.field = "normalized";
+        filter.field = condition.field;
         filter.type = "exact";
 
         condition.filters = [filter]
@@ -120,14 +124,22 @@ function processCondition(
     // We have at least one filtered token, so calculate a score from the list.
     var tokenScore = scoreTokens(options, condition, token.index, filteredTokens);
 
-    // Check the threshold of scores.
+    // Check the threshold of scores. If it is below warning, we don't have to
+    // do anything with it and we can quit.
+    if (tokenScore < condition.warning) { return; }
+
+    // Build up the message to display to the user.
+    var message = token[condition.field] + " was used " + filteredTokens.length
+        + " in the surrounding " + options.range + " tokens. (Score "
+        + tokenScore + ", Text " + token.text + ")";
+
     if (tokenScore >= condition.error)
     {
-        output.writeError("message", token.location);
+        output.writeError(message, token.location);
     }
-    else if (tokenScore >= condition.warning)
+    else
     {
-        output.writeWarning("message", token.location);
+        output.writeWarning(message, token.location);
     }
 }
 

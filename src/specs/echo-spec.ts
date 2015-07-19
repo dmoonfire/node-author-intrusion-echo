@@ -88,4 +88,38 @@ describe("simple echoes", function() {
         // Verify the results.
         expect(output.messages.length).toEqual(2);
     });
+    it("look at line with two POS echoes", function () {
+        // Create the content for the line.
+        var content = createContent("Chris likes Gary. Mary loves everyone.");
+
+        // Perform echo analysis on the text.
+        var filter = new echoPlugin.EchoFilterOptions();
+        filter.field = "partOfSpeech";
+        //filter.includes = ["NN"];
+
+        var condition = new echoPlugin.EchoConditionOptions();
+        condition.score = [0, 0, 1];
+        condition.error = 100;
+        condition.warning = 25;
+        condition.field = "partOfSpeech";
+
+        var options = new echoPlugin.EchoOptions();
+        options.range = 100;
+        options.scope = "document";
+        options.conditions = [condition];
+
+        var output = new types.MemoryAnalysisOutput();
+
+        var args = new types.AnalysisArguments();
+        args.content = content;
+        args.analysis = new types.Analysis();
+        args.analysis.name = "Echo";
+        args.analysis.options = options;
+        args.output = output;
+        echoPlugin.process(args);
+
+        // Verify the results.
+        console.log(output.messages);
+        expect(output.messages.length).toEqual(2);
+    });
 });
