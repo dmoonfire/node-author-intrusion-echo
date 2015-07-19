@@ -86,22 +86,19 @@ describe("simple echoes", function() {
         echoPlugin.process(args);
 
         // Verify the results.
-        expect(output.messages.length).toEqual(2);
+        expect(output.messages.length).toEqual(3);
     });
     it("look at line with two POS echoes", function () {
         // Create the content for the line.
         var content = createContent("Chris likes Gary. Mary loves everyone.");
 
         // Perform echo analysis on the text.
-        var filter = new echoPlugin.EchoFilterOptions();
-        filter.field = "partOfSpeech";
-        //filter.includes = ["NN"];
-
         var condition = new echoPlugin.EchoConditionOptions();
         condition.score = [0, 0, 1];
         condition.error = 100;
         condition.warning = 25;
         condition.field = "partOfSpeech";
+        condition.includes = ["NN"];
 
         var options = new echoPlugin.EchoOptions();
         options.range = 100;
@@ -119,6 +116,6 @@ describe("simple echoes", function() {
         echoPlugin.process(args);
 
         // Verify the results.
-        expect(output.messages.length).toEqual(2);
+        expect(output.messages.length).toEqual(3);
     });
 });

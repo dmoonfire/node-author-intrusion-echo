@@ -109,15 +109,17 @@ function processCondition(
     // Filter out the tokens in testTokens based on the filters we have within
     // the condition. If there is no filter, then we have a placeholder "all"
     // which compared against the same field as the source.
-    if (!condition.filters) {
+    var filters = condition.filters;
+
+    if (!filters) {
         var filter = new EchoFilterOptions();
         filter.field = condition.field;
         filter.includes = [token[condition.field]];
-        condition.filters = [filter]
+        filters = [filter]
     }
 
     // Filter out the tokens. If we don't have any left, then we're done.
-    var filteredTokens = filterTokens(token, condition.filters, testTokens);
+    var filteredTokens = filterTokens(token, filters, testTokens);
 
     if (filteredTokens.length == 0) { return; }
 
@@ -167,9 +169,7 @@ function filterTokens(baseToken: types.Token, filters: EchoFilterOptions[], toke
 
 function inFilter(options: EchoIncludeOptions, value: string): boolean {
     // If there are no includes, it is an auto-include.
-    console.log("inFilter", options, value);
     if (!options.includes || options.includes.length == 0) {
-        console.log("empty");
         return true;
     }
 
@@ -179,21 +179,19 @@ function inFilter(options: EchoIncludeOptions, value: string): boolean {
         var regex: RegExp;
 
         if (include[0] === "/" && include[-1] === "/") {
-            regex = new RegExp(include);
+            regex = new RegExp(include.substring(1, include.length - 2));
         }
         else {
             regex = new RegExp("^" + include + "$");
         }
 
         // See if it matches to the value.
-        console.log("regex match ", regex, value, regex.test(value));
         if (regex.test(value)) {
             return true;
         }
     }
 
     // If we get out of all the filters, it is a false.
-    console.log("fail");
     return false;
 }
 
