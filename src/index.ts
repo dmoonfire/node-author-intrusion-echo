@@ -1,29 +1,23 @@
 /// <reference path="./refs"/>
 
 import types = require("node-author-intrusion");
+import node = require("repl");
 
-export class EchoFilterOptions {
+export interface EchoIncludeOptions {
+    includes: string[];
+}
+
+export class EchoFilterOptions implements EchoIncludeOptions {
     /**
      * The field to use for searching for echoes. Acceptable variables
      * are "normalized" (default), "text", "stem", and "partOfSpeech".
      */
     field: string;
 
-    /**
-     * Contains the type of pattern matching used for tokens. Acceptable
-     * values are exact" (default) or "regex". These are used to
-     * determine how the field is compared against the values.
-     */
-    type: string;
-
-    /**
-     * Contains either a text string or a list of text strings which is
-     * compared using the above type to determine a match.
-     */
-    values: string[];
+    includes: string[];
 }
 
-export class EchoConditionOptions {
+export class EchoConditionOptions implements EchoIncludeOptions {
     score: number[];
     warning: number;
     error: number;
@@ -39,6 +33,8 @@ export class EchoConditionOptions {
      * the comparison.
      */
     filters: EchoFilterOptions[];
+
+    includes: string[];
 }
 
 export class EchoOptions {
@@ -105,14 +101,18 @@ function processCondition(
     condition: EchoConditionOptions,
     token: types.Token,
     testTokens: types.Token[]) {
+    // If we aren't processing this token, skip it.
+    if (!inFilter(condition, token[condition.field])) {
+        return;
+    }
+
     // Filter out the tokens in testTokens based on the filters we have within
     // the condition. If there is no filter, then we have a placeholder "all"
     // which compared against the same field as the source.
     if (!condition.filters) {
         var filter = new EchoFilterOptions();
         filter.field = condition.field;
-        filter.type = "exact";
-
+        filter.includes = [token[condition.field]];
         condition.filters = [filter]
     }
 
@@ -134,12 +134,10 @@ function processCondition(
         + " times in " + options.range + " tokens. (Score "
         + tokenScore + ")";
 
-    if (tokenScore >= condition.error)
-    {
+    if (tokenScore >= condition.error) {
         output.writeError(message, token.location);
     }
-    else
-    {
+    else {
         output.writeWarning(message, token.location);
     }
 }
@@ -155,14 +153,8 @@ function filterTokens(baseToken: types.Token, filters: EchoFilterOptions[], toke
         // Loop through all the filters. If we find a match, we include it. If
         // we get through all the filters without matching, we skip it.
         for (var filter of filters) {
-            // Get the base and compare value.
-            var baseValue = baseToken[filter.field];
-            var testValue = testToken[filter.field];
-
-            // Check for include/exclude values.
-
-            // If there is a match, we include it.
-            if (inFilter(filter, baseValue, testValue)) {
+            // If we aren't processing this token, skip it.
+            if (inFilter(filter, testToken[filter.field])) {
                 filteredTokens.push(testToken);
                 break;
             }
@@ -173,67 +165,36 @@ function filterTokens(baseToken: types.Token, filters: EchoFilterOptions[], toke
     return filteredTokens;
 }
 
-function inFilter(filter: EchoFilterOptions, baseValue: string, testValue: string) {
-    // The filter type determines how (or if) we compare the test value.
-    switch (filter.type) {
-        case "exact":
-            return baseValue === testValue;
-        default:
-            throw new Error("Unknown echo filter type: " + filter.type + ".");
+function inFilter(options: EchoIncludeOptions, value: string): boolean {
+    // If there are no includes, it is an auto-include.
+    console.log("inFilter", options, value);
+    if (!options.includes || options.includes.length == 0) {
+        console.log("empty");
+        return true;
     }
-}
 
-function processToken(
-    options: EchoOptions,
-    text: string,
-    tokens: types.Token[]) {
-    /*
-        // Get the thresholds.
-        var warningThreshold: number = options.warning;
-        var errorThreshold: number = options.error;
+    // Go through and see if it is a match.
+    for (var include of options.includes) {
+        // If the line starts and ends with a "/", then it is a regex.
+        var regex: RegExp;
 
-        // Loop through the tokens and then filter out the list of ones that within
-        // the given range.
-        for (var i in tokens) {
-            // Get the token and then get all of the tokens that are close to that range.
-            // If there aren't any test tokens, then skip it.
-            var token: types.Token = tokens[i];
-            var testTokens = getTestTokens(args.analysis.options, token.index, tokens);
-
-            if (testTokens.length == 0) {
-                continue;
-            }
-
-
-            // See if we have a score multiplier. This will return 1.0 if we don't have one, so we
-            // can multiply the score by it to get an adjusted score.
-            var tokenMultiplier = getScoreMultiplier(args.analysis.options, token.text);
-
-            tokenScore *= tokenMultiplier;
-
-            // If we are under the warning threshold, we don't have to worry about it.
-            if (tokenScore < warningThreshold) {
-                continue;
-            }
-
-            // Format the message we'll be showing the user.
-            var message = args.analysis.name
-                + ": '" + token.text + "' is echoed "
-                + (testTokens.length + 1)
-                + " times within "
-                + args.analysis.options.range
-                + " words (score "
-                + tokenScore
-                + ")";
-
-            if (tokenScore < errorThreshold) {
-                args.output.writeWarning(message, token.location);
-            }
-            else {
-                args.output.writeError(message, token.location);
-            }
+        if (include[0] === "/" && include[-1] === "/") {
+            regex = new RegExp(include);
         }
-    */
+        else {
+            regex = new RegExp("^" + include + "$");
+        }
+
+        // See if it matches to the value.
+        console.log("regex match ", regex, value, regex.test(value));
+        if (regex.test(value)) {
+            return true;
+        }
+    }
+
+    // If we get out of all the filters, it is a false.
+    console.log("fail");
+    return false;
 }
 
 function getTestTokens(options: EchoOptions, index: number, tokens: types.Token[]): types.Token[] {
@@ -290,58 +251,3 @@ function calculateScore(score: number[], x: number): number {
 
     return value;
 }
-
-function getScoreMultiplier(options: EchoOptions, text: string): number {
-    /*
-        // If we don't have multipliers, then we're good.
-        if (!options.tokens) {
-            return 1;
-        }
-
-        // Loop through until we find the first match.
-        for (var index in options.tokens) {
-            // Figure out if we have a match.
-            var multiplier = options.tokens[index];
-            var type = multiplier.type;
-            if (!type) { type = "exact"; }
-
-            switch (type) {
-                case "exact":
-                    if (multiplier.value === text) {
-                        return multiplier.multiplier;
-                    }
-                    break;
-
-                case "regex":
-                    if (text.match("^" + multiplier.value + "$")) {
-                        return multiplier.multiplier;
-                    }
-                    break;
-
-                default:
-                    throw new Error("Unknown token multiplier");
-            }
-        }
-
-        // If we fall out of the loop, use 1.0.
-    */
-    return 1;
-}
-
-/*
-// The score is a quadratic function (a + bx + cx^2) that calculates a numerical
-// score based on x = range - abs(distance).
-var score: number[] = options.score;
-
-if (!score) {
-    args.output.writeError(
-        args.analysis.name + ": options.score must be set.",
-        args.content.tokens[0].location);
-    return;
-}
-
-// Figure out which field we'll be pulling.
-var fieldName = options.field ? options.field : "normalized";
-
-
-*/

@@ -119,7 +119,6 @@ describe("simple echoes", function() {
         echoPlugin.process(args);
 
         // Verify the results.
-        console.log(output.messages);
         expect(output.messages.length).toEqual(2);
     });
 });
