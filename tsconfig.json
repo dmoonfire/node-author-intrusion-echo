@@ -31,6 +31,8 @@
     ],
     "files": [
         "src/index.ts",
-        "src/refs.ts"
+        "src/refs.ts",
+        "src/specs/echo-spec.ts",
+        "src/specs/environment-spec.ts"
     ]
 }
